@@ -7,24 +7,23 @@ This project implements an Intrusion Detection System (IDS) using a machine lear
 ids-project/
 │
 ├── data/
-│   ├── KDDTrain+.txt         # Training data
-│   └── KDDTest+.txt          # Test data
+│   ├── KDDTrain+.txt                 # Training data
+│   └── KDDTest+.txt                  # Test data
 │
 ├── model/
-│   └── random_forest_id_model.pkl  # Trained RandomForestClassifier model
+│   └── random_forest_id_model.pkl    # Trained RandomForestClassifier model
 │
 ├── visualization/
-│   ├── visualization_random_forest_metrics.png   # Visualization of model metrics
-│   ├── confusion_matrix_random_forest.png        # Confusion matrix plot
-│   └── roc_curve_random_forest.png               # ROC curve plot
+│   ├── visualization_random_forest_metrics.png  # Visualization of model metrics
+│   ├── confusion_matrix_random_forest.png       # Confusion matrix plot
+│   └── roc_curve_random_forest.png              # ROC curve plot
 │
-├── app.py                     # Flask application for model deployment
-├── requirements.txt           # List of Python package dependencies
-├── preprocess.py              # Data preprocessing script
-├── train_model.py             # Model training script
-├── evaluate_model.py          # Model evaluation script
-└── README.md                  # Project documentation
-
+├── app.py                               # Flask application for model deployment
+├── requirements.txt                     # List of Python package dependencies
+├── preprocess.py                        # Data preprocessing script
+├── train_model.py                       # Model training script
+├── evaluate_model.py                    # Model evaluation script
+└── README.md                            # Project documentation
 
 
 ## Features
