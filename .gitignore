@@ -1,162 +1,131 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import shap
+import joblib
+import logging
+from flask import Flask, request, jsonify
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc, classification_report
+from imblearn.over_sampling import SMOTE
+from sklearn.pipeline import Pipeline
 
-# C extensions
-*.so
+logging.basicConfig(filename='intrusion_detection.log', level=logging.INFO)
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+train_data = pd.read_csv(r'C:\Users\shame\Desktop\ML\project codes\KDDTrain+.txt', header=None)
+test_data = pd.read_csv(r'C:\Users\shame\Desktop\ML\project codes\KDDTest+.txt', header=None)
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+train_data = train_data.iloc[:, :42]
+test_data = test_data.iloc[:, :42]
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+sample_size = 10000
+train_data = train_data.sample(n=sample_size, random_state=42)
+test_data = test_data.sample(n=sample_size, random_state=42)
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
+if train_data.shape[1] != 42 or test_data.shape[1] != 42:
+    raise ValueError("Number of columns in the dataset does not match the expected number of columns.")
 
-# Translations
-*.mo
-*.pot
+columns = ["duration", "protocol_type", "service", "flag", "src_bytes", "dst_bytes", "land", "wrong_fragment", "urgent",
+           "hot", "num_failed_logins", "logged_in", "num_compromised", "root_shell", "su_attempted", "num_root",
+           "num_file_creations", "num_shells", "num_access_files", "num_outbound_cmds", "is_host_login", "is_guest_login",
+           "count", "srv_count", "serror_rate", "srv_serror_rate", "rerror_rate", "srv_rerror_rate", "same_srv_rate",
+           "diff_srv_rate", "srv_diff_host_rate", "dst_host_count", "dst_host_srv_count", "dst_host_same_srv_rate",
+           "dst_host_diff_srv_rate", "dst_host_same_src_port_rate", "dst_host_srv_diff_host_rate", "dst_host_serror_rate",
+           "dst_host_srv_serror_rate", "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+train_data.columns = columns
+test_data.columns = columns
 
-# Flask stuff:
-instance/
-.webassets-cache
+data = pd.concat([train_data, test_data])
 
-# Scrapy stuff:
-.scrapy
+categorical_columns = ["protocol_type", "service", "flag"]
+label_encoder = LabelEncoder()
+for column in categorical_columns:
+    data[column] = label_encoder.fit_transform(data[column])
 
-# Sphinx documentation
-docs/_build/
+train_data = data.iloc[:len(train_data), :]
+test_data = data.iloc[len(train_data):, :]
 
-# PyBuilder
-.pybuilder/
-target/
+X_train = train_data.drop('label', axis=1)
+y_train = train_data['label']
+X_test = test_data.drop('label', axis=1)
+y_test = test_data['label']
 
-# Jupyter Notebook
-.ipynb_checkpoints
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+y_pred_rf = rf_model.predict(X_test)
 
-# IPython
-profile_default/
-ipython_config.py
+accuracy_rf = accuracy_score(y_test, y_pred_rf)
+precision_rf = precision_score(y_test, y_pred_rf, average='weighted', zero_division=1)
+recall_rf = recall_score(y_test, y_pred_rf, average='weighted', zero_division=1)
+f1_rf = f1_score(y_test, y_pred_rf, average='weighted')
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+print('RandomForest - Accuracy:', accuracy_rf)
+print('RandomForest - Precision:', precision_rf)
+print('RandomForest - Recall:', recall_rf)
+print('RandomForest - F1 Score:', f1_rf)
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+values = [accuracy_rf, precision_rf, recall_rf, f1_rf]
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
+plt.figure(figsize=(10, 6))
+plt.bar(metrics, values, color=['blue', 'green', 'orange', 'red'])
+plt.title('RandomForest Model Evaluation Metrics')
+plt.xlabel('Metrics')
+plt.ylabel('Score')
+plt.ylim(0, 1)
+plt.savefig('visualization_random_forest_metrics.png')
+plt.show()
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
-.pdm.toml
-.pdm-python
-.pdm-build/
+plt.figure(figsize=(8, 6))
+cm = confusion_matrix(y_test, y_pred_rf)
+plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+plt.title('Confusion Matrix - RandomForest')
+plt.colorbar()
+tick_marks = np.arange(len(np.unique(y_test)))
+plt.xticks(tick_marks, np.unique(y_test), rotation=45)
+plt.yticks(tick_marks, np.unique(y_test))
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.savefig('confusion_matrix_random_forest.png')
+plt.show()
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+plt.figure(figsize=(8, 6))
+fpr, tpr, _ = roc_curve(y_test, rf_model.predict_proba(X_test)[:, 1])
+roc_auc = auc(fpr, tpr)
+plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic - RandomForest')
+plt.legend(loc="lower right")
+plt.savefig('roc_curve_random_forest.png')
+plt.show()
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+explainer = shap.TreeExplainer(rf_model)
+shap_values = explainer.shap_values(X_test)
+shap.summary_plot(shap_values, X_test, feature_names=X_test.columns)
 
-# SageMath parsed files
-*.sage.py
+joblib.dump(rf_model, 'random_forest_id_model.pkl')
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+app = Flask(__name__)
 
-# Spyder project settings
-.spyderproject
-.spyproject
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        data = request.get_json()
+        input_data = pd.DataFrame(data, index=[0])
+        prediction = rf_model.predict(input_data)
+        response = {'prediction': prediction[0]}
+        return jsonify(response)
+    except Exception as e:
+        logging.error(f"Error occurred: {e}")
+        return jsonify({'error': str(e)}), 400
 
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+if __name__ == '__main__':
+    app.run(debug=True)
